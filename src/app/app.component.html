@@ -106,7 +106,7 @@
             {{a}}
           </span>
         </div>
-        
+
       </div>
     </div>
 
@@ -143,7 +143,7 @@
       </div>
       <label for="varLabel">Variabellabel &nbsp;</label>
       <div class="col-lg-12 border border-dark rounded" style="width:100%;" id="varLabel">
-        
+
         <span>{{currentQuestion.var_label}}</span>
       </div>
     </div>
@@ -162,7 +162,7 @@
                 <mat-form-field class="auto-full-width" appearance="fill">
                   <input type="text" [(ngModel)]="topic_query"
                          placeholder="search for a theme"
-                         aria-label="From Thesoz" 
+                         aria-label="From Thesoz"
                          matInput
                          [formControl]="myControl"
                          [matAutocomplete]="auto" >
@@ -175,7 +175,7 @@
                 <span *ngIf="autoOptionNoResult" class="auto-no-result"> no result</span>
               </form>
           </div>
-        <!-- CURRENT VALUES 
+        <!-- CURRENT VALUES
         <div class="form-row">
           <div class="d-flex align-items-center justify-content-center col-md-12">
             <h4><span class="badge badge-secondary" id="SuperAttributeCurrent">{{currentQuestion?.l_topic1}}</span></h4>
@@ -187,15 +187,15 @@
           </div>
       </div>-->
 
-      <!-- SUBTOPIC 
+      <!-- SUBTOPIC
       <div class="col-md-6 border rounded">
-        <!-- HEADER 
+        <!-- HEADER
         <div class="form-row">
           <div class="form-group col-md-6">
             <h3>Unterthema</h3>
           </div>
         </div>
-        <!-- CURRENT VALUE 
+        <!-- CURRENT VALUE
         <div class="form-row">
           <div class="d-flex align-items-center justify-content-center col-md-12">
             <h4><span class="badge badge-secondary" id="SubAttributeCurrent">{{currentQuestion?.l_topic2}}</span></h4>
@@ -206,7 +206,7 @@
             <h4><span class="badge badge-info" id="SubAttributeCurrentSecond">{{currentQuestion?.l_topic4}}</span></h4>
           </div>
         </div>
-        <!-- OPTIONS 
+        <!-- OPTIONS
         <div class="form-row">
           <div class="form-group col-md-12">
             <div *ngFor="let topic of subtopics" class="input-group" id="Subtopic">
@@ -224,17 +224,18 @@
     <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
       <div *ngFor="let theme of currentQuestion.themes" #item>
         <span style="padding-bottom:10px;margin-bottom: 10px;">
-          <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove()">delete</i>
+          <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove() " style="float: ;left">delete</i>
+
           {{theme}}
         </span>
       </div>
-      
+
     </div>
 
-<!-- 
+<!--
     <div class="row">
 
-      <!-- CERTAINTY SLIDER 
+      <!-- CERTAINTY SLIDER
       <div class="col-md-12 border rounded">
         <div class="form-row">
           <h3>Antwortsicherheit</h3>
@@ -245,7 +246,7 @@
         <div class="form-row">
           <ng5-slider [(value)]="currentQuestion.a_certainty" [options]="options" (click)="clickSlider()" id="CertSlider"></ng5-slider>
         </div>
-        <hr/> <!-- Compensate for slider labels 
+        <hr/> <!-- Compensate for slider labels
       </div>
 
     </div> -->
