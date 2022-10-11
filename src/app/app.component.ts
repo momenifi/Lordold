@@ -174,9 +174,10 @@ constructor(private http: HttpClient,private service:PostService) {
   }
 
   removeFromThemes(theme){
-    this.currentQuestion.themes.forEach((element,index)=>{
-      if(element==theme) delete this.currentQuestion.themes[index];
-   });
+    const index = this.currentQuestion.themes.indexOf(theme);
+    if (index !== -1) {
+      this.currentQuestion.themes.splice(index, 1);
+    };
   }
 
   private _filter(value: string): string[] {
