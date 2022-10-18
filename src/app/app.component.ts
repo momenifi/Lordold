@@ -276,53 +276,49 @@ constructor(private http: HttpClient,private service:PostService) {
     const lines = result.split('\n').map(line => {
       return line.split(';');
     });
+    const header = lines[0];
+    lines.shift();
+    let q_uid:number;
+    let q_variable_ID:string;
+    let var_label:string;
+    let q_text:string;
+    let q_items: Array<string>;
+    let q_answers: Array<string>;
+    let sub_question: string;
+    let themes: Array<string>;
+    let free_topics : Array<string>;
+    let comment: string;
+    let a_name: string;
     lines.filter(line => (line.length >= 5 && line.length <= 27) ).forEach(line => {
+      
       let ind = 0;
+      for (let columnName in header)
+      {
+        if (header[columnName] == 'q_uid')  q_uid = Number(line[ind]);
+        else if (header[columnName] == 'q_variable_ID') q_variable_ID = line[ind];
+        else if (header[columnName] == 'var_label') var_label = line[ind];
+        else if (header[columnName] == 'q_text') q_text = line[ind];
+        else if (header[columnName] == 'q_items') q_items = line[ind].split('&');
+        else if (header[columnName] == 'q_answers') q_answers = line[ind].split('&');
+        else if (header[columnName] == 'sub_question') sub_question = line[ind];
+        else if (header[columnName] == 'themes') themes = line[ind].split('&');
+        else if (header[columnName] == 'free_topics') free_topics = line[ind].split('&');
+        else if (header[columnName] == 'comment')comment = line[ind];
+        else if (header[columnName] == 'a_name')a_name = line[ind];
+        ind = ind +1;
+      }
+      /*
       const q_uid: number = +line[ind];
       const q_variable_ID = line[++ind];
       const var_label = line[++ind];
       const q_text: string = line[++ind];
-      /*const q_text_token: Array<[string, number, number]> = [];
-      const words = line[++ind].split(';');
-      for (let i = 0; i < words.length; i += 1) {
-        const tup = words[i].split(',');
-        q_text_token.push([tup[0], +tup[1], i]);
-      }
-      const q_items: string = line[++ind];
-      let q_items_token: Array<[string, number, number]> = [];
-      const items = line[++ind].split(',');
-      for (let i = 0; i < items.length; i += 1) {
-        if (items[i].includes(';')) {
-          const tup = items[i].split(';');
-          q_items_token.push([tup[0], +tup[1], i]);
-        } else {
-          if (items[i].length>0) q_items_token.push([items[i], 0, i]);
-        }
-      }
-      const q_answers: string = line[++ind];
-      const q_answers_token: Array<Array<string>> = [];*/
       const q_items = line[++ind].split('&');
       const q_answers = line[++ind].split('&');
-      /*for (let i = 0; i < answers.length; i += 1) {
-        q_answers_token.push(answers[i].split(','));
-      }
-      const q_variable_IDs = line[++ind].split(';');*/
       const sub_question: string = line[++ind];
       const themes = line[++ind].split('&');
       const free_topics = line[++ind].split('&');
       const comment: string = line[++ind];
-      const a_name: string = line[++ind];
-      /*
-      if (line.length >= 25) l_tempus = line[++ind];
-      l_tempus = l_tempus.length <= 0 ? "" : l_tempus;
-      let l_period = "";
-      if (line.length >= 26) l_period = line[++ind];
-      l_period = l_period.length <= 0 ? "" : l_period;
-      const p_pred: any = line[++ind];
-      const p_simIDs_sameC = line[++ind].split(';');
-      const p_simIDs_diffC = line[++ind].split(';');*/
-
-      //this.questions.push(new Question(q_uid, q_id, q_text, q_text_token, q_items, q_items_token, q_answers, q_answers_token, q_variable_IDs, a_name, a_timestamp, a_annotime, a_certainty, l_attribute1, l_attribute2, l_attribute3, l_topic1, l_topic2, l_topic3, l_topic4, l_concept, l_focus, l_tempus, l_period, p_pred, p_simIDs_sameC, p_simIDs_diffC));
+      const a_name: string = line[++ind];*/
       this.questions.push(new Question(q_uid,q_variable_ID, var_label,q_text, q_items, q_answers,sub_question,	themes,	free_topics,	comment,a_name ));
       this.indexAll.push(q_uid); 
 
