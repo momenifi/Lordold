@@ -1,6 +1,8 @@
 <!-- Navigation Bar -->
 <nav class="navbar navbar-dark bg-dark" id="top-section">
-  <a class="navbar-brand" href="#"><img src="assets/logo.png" width="32" height="32" alt="AnnoTool"> Annotation Tool</a>
+  <a class="navbar-brand" href="#">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <img src="assets/logo.png" width="32" height="32" alt="AnnoTool"> Annotation Tool</a>
   <span class="navbar-text">
     <button *ngIf="result && name" type="button" class="mx-2 btn btn-secondary" data-toggle="modal" data-target="#logoutModal">Logout</button>
     <button *ngIf="result && name && devMode" type="button" class="mx-2 btn btn-secondary" (click)="logCurrentQuestion()">Log CurrQ</button>
@@ -75,6 +77,138 @@
 <!-- Annotation Content -->
 <div class="container" *ngIf="result && name && !paused">
   <hr/>
+
+
+
+  <form >
+    <div class="row">
+      <div class="col">
+        <label for="">Question ID</label>
+        <div class="col-lg-12 border border-dark rounded">
+          <span>{{currentQuestion.q_uid}}</span></div>
+      </div>
+      <div class="col">
+        <label for="">Variable ID</label>
+        <div class="col-lg-12 border border-dark rounded">
+          <span>{{currentQuestion.q_variable_ID}}</span></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="" >Fragetext</label>
+        <div class="col-sm-6 border border-dark rounded"  style="padding:0 0 30px 10px ;">
+          <span>{{currentQuestion.q_text}}</span>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label for="">Frageitem</label>
+        <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
+          <span>{{currentQuestion.q_items}}</span></div>
+      </div>
+      <div class="col">
+        <label for="">Variable label</label>
+        <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
+          <span>{{currentQuestion.var_label}}</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label for="">Antwortkategorien</label>
+        <div  class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
+          <span>{{currentQuestion.q_answers}}</span>
+        </div>
+      </div>
+      <div class="col">
+        <label for="">Wertelabel</label>
+        <div class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
+          <span>{{currentQuestion.q_answers}}</span></div>
+      </div>
+    </div>
+<br>
+
+    <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
+
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Thema:</label>
+        <div class="col-md-8">
+          <!--<input type="checkbox" class="custom-control-input" [(ngModel)]="additionalTopic" id="toggleAdditionalTopic" name="toggleAdditionalTopic">
+          <label class="custom-control-label" for="toggleAdditionalTopic" >Zusätzliches Thema</label>-->
+          <form class="auto-form">
+            <mat-form-field class="auto-full-width" appearance="fill">
+              <input type="text" [(ngModel)]="topic_query"
+                     placeholder="search for a theme"
+                     aria-label="From Thesoz"
+                     matInput
+                     [formControl]="myControl"
+                     [matAutocomplete]="auto" >
+              <mat-autocomplete #auto="matAutocomplete">
+                <mat-option *ngFor="let option of (filteredAutoOptions | async)" (onSelectionChange)="addToThemes(option)" [value]="option">
+                  {{option}}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+            <span *ngIf="autoOptionNoResult" class="auto-no-result"> no result</span>
+          </form>
+      </div><i class="fa fa-search"  style="line-height: 2; margin-left:5px; font-size: x-large; float: right;" ></i>
+      </div><br><br>
+
+
+        <div style="margin: 20px 0 40px 0;">Ausgewalte Themen:</div>
+        <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
+          <div *ngFor="let theme of currentQuestion.themes" #item>
+            <span style="padding-bottom:10px;margin-bottom: 10px;">
+    <<<<<<< Updated upstream
+              <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:left">delete</i>
+    =======
+              <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove() " style="float: left;">delete</i>
+    >>>>>>> Stashed changes
+
+              {{theme}}
+            </span>
+          </div>
+
+        </div>
+    </div>
+    <br>
+    <div class="col-lg-12 border border-dark rounded" style="padding-bottom: 30px;">
+      <p style="margin-top: 10px;">Freie Schlagworte,die nicht einem TheSoz Thema zugeordent sind (optional)</p>
+      <select class="col-sm-6" style="  float: left;background-color: #fff;"></select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
+      <button style="float: right; background-color: #fff;">Freies Schlagwort hinzufugen</button>
+
+    </div>
+
+
+      <br>
+    <div class="row">
+      <div class="col">
+          <label for="">Kommentar</label>
+          <div class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
+            <span>xxxx</span></div>
+      </div>
+
+    </div>
+
+    <div class="form-group">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required>
+        <label class="form-check-label" for="invalidCheck">
+          Variable zur Wiedervorlage kennzeichnen
+        </label>
+
+      </div>
+    </div>
+
+
+  </form>
+
+
+
 
   <form>
     <!-- TEXT -->
@@ -155,26 +289,7 @@
     <div class="row">
         <!-- HEADER -->
           <legend class="col-form-label col-md-2 pt-0">Thema</legend>
-          <div class="col-md-10">
-              <!--<input type="checkbox" class="custom-control-input" [(ngModel)]="additionalTopic" id="toggleAdditionalTopic" name="toggleAdditionalTopic">
-              <label class="custom-control-label" for="toggleAdditionalTopic" >Zusätzliches Thema</label>-->
-              <form class="auto-form">
-                <mat-form-field class="auto-full-width" appearance="fill">
-                  <input type="text" [(ngModel)]="topic_query"
-                         placeholder="search for a theme"
-                         aria-label="From Thesoz"
-                         matInput
-                         [formControl]="myControl"
-                         [matAutocomplete]="auto" >
-                  <mat-autocomplete #auto="matAutocomplete">
-                    <mat-option *ngFor="let option of (filteredAutoOptions | async)" (onSelectionChange)="addToThemes(option)" [value]="option">
-                      {{option}}
-                    </mat-option>
-                  </mat-autocomplete>
-                </mat-form-field>
-                <span *ngIf="autoOptionNoResult" class="auto-no-result"> no result</span>
-              </form>
-          </div>
+
         <!-- CURRENT VALUES
         <div class="form-row">
           <div class="d-flex align-items-center justify-content-center col-md-12">
@@ -224,7 +339,11 @@
     <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
       <div *ngFor="let theme of currentQuestion.themes" #item>
         <span style="padding-bottom:10px;margin-bottom: 10px;">
+<<<<<<< Updated upstream
           <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:left">delete</i>
+=======
+          <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove() " style="float: left;">delete</i>
+>>>>>>> Stashed changes
 
           {{theme}}
         </span>
