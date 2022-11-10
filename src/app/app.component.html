@@ -121,27 +121,37 @@
       <div class="col">
         <label for="">Antwortkategorien</label>
         <div  class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
-          <span>{{currentQuestion.q_answers}}</span>
+          <div *ngFor="let a of currentQuestion.q_answers">
+            <span>
+              {{a}}
+            </span>
+          </div>
         </div>
       </div>
       <div class="col">
         <label for="">Wertelabel</label>
         <div class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
-          <span>{{currentQuestion.q_answers}}</span></div>
+          <div *ngFor="let a of currentQuestion.q_answers">
+            <span>
+              {{a}}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 <br>
 
-    <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
+    
+	<div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
 
-      <div class="form-group row">
-        <label class="col-sm-2 col-form-label">Thema:</label>
-        <div class="col-md-8">
+      <div class="form-group row" style="display:flex; justify-content:flex-start;">
+        <label class="col-sm-2 col-form-label" style="max-width: 7%;">Thema:</label>
+        <div class="col-md-8" style="max-width: 50%;">
           <!--<input type="checkbox" class="custom-control-input" [(ngModel)]="additionalTopic" id="toggleAdditionalTopic" name="toggleAdditionalTopic">
           <label class="custom-control-label" for="toggleAdditionalTopic" >Zusätzliches Thema</label>-->
           <form class="auto-form">
             <mat-form-field class="auto-full-width" appearance="fill">
-              <input type="text" [(ngModel)]="topic_query"
+              <input type="text" [(ngModel)]="topic_query" style="display: flex; align-items:center"
                      placeholder="search for a theme"
                      aria-label="From Thesoz"
                      matInput
@@ -155,26 +165,37 @@
             </mat-form-field>
             <span *ngIf="autoOptionNoResult" class="auto-no-result"> no result</span>
           </form>
-      </div><i class="fa fa-search"  style="line-height: 2; margin-left:5px; font-size: x-large; float: right;" ></i>
+      </div><i class="fa fa-search"  style="line-height: 2; margin-left:5px; margin-right: 60px; font-size: x-large; float: right;" ></i>
       </div><br><br>
 
 
-        <div style="margin: 20px 0 40px 0;">Ausgewalte Themen:</div>
-        <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
+        <div style="margin: 20px 0 40px 0;">Ausgewälte Themen:</div>
+        <div  class="col-lg-12 border rounded" style="padding:10px;background-color: #f5f5f5;" id="questionAnswers">
           <div *ngFor="let theme of currentQuestion.themes" #item>
+            
             <span style="padding-bottom:10px;margin-bottom: 10px;">
-    <<<<<<< Updated upstream
-              <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:left">delete</i>
-    =======
-              <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove() " style="float: left;">delete</i>
-    >>>>>>> Stashed changes
+              
+    
+              <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:right;line-height: 2;font-size: 30px;">delete</i>
+              
+              <hr  style="width:100%;height:1px;border-width:0;color:gray;margin:10px auto;background-color:rgb(203, 201, 201)">
+              
+    
 
-              {{theme}}
+              {{theme }}
+              
+              
             </span>
+            <br>
+            <p style="margin-top: 10px;">Freie Schlagworte dazu (optional)</p>
+            <select class="col-sm-6" style="  float: left;background-color: #fff;"></select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
+      <button style="float: right; background-color: #fff; border-radius: 5px;" >Neues freies Schlagwort zu Church hinzufügen</button>
           </div>
 
         </div>
     </div>
+	
+	
     <br>
     <div class="col-lg-12 border border-dark rounded" style="padding-bottom: 30px;">
       <p style="margin-top: 10px;">Freie Schlagworte,die nicht einem TheSoz Thema zugeordent sind (optional)</p>
@@ -203,174 +224,8 @@
 
       </div>
     </div>
-
-
   </form>
 
-
-
-
-  <form>
-    <!-- TEXT -->
-    <div class="form-row" (mouseover)="hover=true" (mouseleave)="hover=false">
-      <label for="questionText">Frage #{{currentQuestion.q_uid}}</label>
-      <div class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionText">
-        <span>{{currentQuestion.q_text}}</span>
-      </div>
-    </div>
-
-    <!-- ITEMS -->
-    <div class="form-row" *ngIf="currentQuestion?.q_items.length>0">
-      <label for="questionAnswers">Fragenitem</label>
-      <div class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionItem">
-        <div *ngFor="let item of currentQuestion.q_items">
-          <span>
-            {{item}}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ANSWER OPTIONS -->
-    <div class="form-row">
-      <label for="questionAnswers">Antwortoptionen</label>
-      <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
-        <div *ngFor="let a of currentQuestion.q_answers">
-          <span>
-            {{a}}
-          </span>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Button Bar -->
-    <hr/>
-    <div class="form-row">
-      <!-- Collapse Variablen ID
-      <div class="mx-2 custom-control custom-switch">
-        <input type="checkbox" class="custom-control-input" data-toggle="collapse" href="#collapseVarIDs"
-               id="toggleVarIDs">
-        <label class="custom-control-label" for="toggleVarIDs">Variablen IDs</label>
-      </div> -->
-      <!-- Mark problem with question
-      <div class="mx-2"
-           *ngIf="!inProblemQList()">
-        <button type="button" class="btn btn-outline-info btn-sm" (click)="addToProblemQList()">Problem mit Text anmerken</button>
-      </div>
-      <div class="mx-2"
-           *ngIf="inProblemQList()">
-        <button type="button" class="btn btn-outline-info btn-sm" disabled>Problem mit Text angemerkt</button>
-      </div>-->
-    </div>
-    <!--
-    <div class="form-row">
-      <div class="collapse" id="collapseVarIDs">
-        <span *ngFor="let ID of currentQuestion?.q_variable_IDs" name="text_variableIDs"
-              class="badge badge-secondary">{{ID}}</span>
-      </div>
-    </div>-->
-    <div class="form-row" >
-      <div style="width:100%;" id="varID">
-        <label for="varID">VariabelID &nbsp;</label>
-        <span class="badge badge-secondary">{{currentQuestion.q_variable_ID}}<br></span>
-      </div>
-      <label for="varLabel">Variabellabel &nbsp;</label>
-      <div class="col-lg-12 border border-dark rounded" style="width:100%;" id="varLabel">
-
-        <span>{{currentQuestion.var_label}}</span>
-      </div>
-    </div>
-
-    <hr/>
-    <hr/>
-
-
-    <div class="row">
-        <!-- HEADER -->
-          <legend class="col-form-label col-md-2 pt-0">Thema</legend>
-
-        <!-- CURRENT VALUES
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-secondary" id="SuperAttributeCurrent">{{currentQuestion?.l_topic1}}</span></h4>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-info" id="SuperAttributeCurrentSecond">{{currentQuestion?.l_topic3}}</span></h4>
-          </div>
-      </div>-->
-
-      <!-- SUBTOPIC
-      <div class="col-md-6 border rounded">
-        <!-- HEADER
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <h3>Unterthema</h3>
-          </div>
-        </div>
-        <!-- CURRENT VALUE
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-secondary" id="SubAttributeCurrent">{{currentQuestion?.l_topic2}}</span></h4>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-info" id="SubAttributeCurrentSecond">{{currentQuestion?.l_topic4}}</span></h4>
-          </div>
-        </div>
-        <!-- OPTIONS
-        <div class="form-row">
-          <div class="form-group col-md-12">
-            <div *ngFor="let topic of subtopics" class="input-group" id="Subtopic">
-              <button name="btn_period" class="btn btn-outline-secondary btn-block"
-                      type="button"
-                      id="btn_period"
-                      (click)="setSubtopic(topic)">{{topic}}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>-->
-    </div>
-
-    <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
-      <div *ngFor="let theme of currentQuestion.themes" #item>
-        <span style="padding-bottom:10px;margin-bottom: 10px;">
-<<<<<<< Updated upstream
-          <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:left">delete</i>
-=======
-          <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove() " style="float: left;">delete</i>
->>>>>>> Stashed changes
-
-          {{theme}}
-        </span>
-      </div>
-
-    </div>
-
-<!--
-    <div class="row">
-
-      <!-- CERTAINTY SLIDER
-      <div class="col-md-12 border rounded">
-        <div class="form-row">
-          <h3>Antwortsicherheit</h3>
-        </div>
-        <div class="form-row">
-          <span *ngIf="changedCurrQuestionTextHighlight() && !clickedSlider" class="badge badge-danger">Antwortsicherheit fehlt</span>
-        </div>
-        <div class="form-row">
-          <ng5-slider [(value)]="currentQuestion.a_certainty" [options]="options" (click)="clickSlider()" id="CertSlider"></ng5-slider>
-        </div>
-        <hr/> <!-- Compensate for slider labels
-      </div>
-
-    </div> -->
-
-  </form>
 
   <!-- Make room for buttom navigation bar -->
   <hr/>
