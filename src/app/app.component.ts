@@ -1,472 +1,507 @@
-<!-- Navigation Bar -->
-<nav class="navbar navbar-dark bg-dark" id="top-section">
-  <a class="navbar-brand" href="#">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <img src="assets/logo.png" width="32" height="32" alt="AnnoTool"> Annotation Tool</a>
-  <span class="navbar-text">
-    <button *ngIf="result && name" type="button" class="mx-2 btn btn-secondary" data-toggle="modal" data-target="#logoutModal">Logout</button>
-    <button *ngIf="result && name && devMode" type="button" class="mx-2 btn btn-secondary" (click)="logCurrentQuestion()">Log CurrQ</button>
-    <button *ngIf="result && name && devMode" type="button" class="mx-2 btn btn-secondary" (click)="logCurrentQuestionText()">Log CurrQText</button>
-  </span>
-  <span class="navbar-text" *ngIf="result && name">
-    <h3>Annotator: {{name}}</h3>
-  </span>
-</nav>
-<hr/>
-
-<!-- Start Screen -->
-<div class="container" *ngIf="!result">
-  <div class="flex-md-row">
-    <h1>AnnoFile hochladen:</h1>
-
-    <div class="input-group mb-3">
-      <div class="input-group-prepend">
-        <span class="input-group-text" id="basic-addon1">Annotator Name</span>
-      </div>
-      <input type="text" class="form-control" [(ngModel)]="name" name="personName"
-             placeholder="Bitte Vornamen oder Initialien angeben"
-             aria-label="Annotator name" aria-describedby="basic-addon1">
-    </div>
-
-    <div class="input-group mb-3">
-      <div class="input-group-prepend">
-        <span class="input-group-text" id="basic-addon2">Dokumenten-Pfad</span>
-      </div>
-      <div class="custom-file">
-        <input type="file" class="custom-file-input" name="fileInput" (change)="fileChanged($event)"
-               id="inputGroupFile01">
-        <label class="custom-file-label" for="inputGroupFile01">Dokument auswählen</label>
-      </div>
-    </div>
-
-    <div class="custom-control custom-checkbox">
-      <input type="checkbox" class="custom-control-input" id="customCheck1" [(ngModel)]="resetDB" value="check1">
-      <label class="custom-control-label" for="customCheck1">NUR Textdatei laden und alle im Browser gespeicherte Annotationen löschen</label>
-    </div>
-    <hr/>
-
-    <button type="button" class="btn btn-danger" id="fileuploadbutton" (click)="uploadDocument()">
-      <span class="spinner-border spinner-border-sm" role="status" *ngIf="loadResult"></span>
-      <span *ngIf="!loadResult">Dokument hochladen</span>
-    </button>
-
-  </div>
-</div>
+import {Component, OnInit} from '@angular/core';
+import {Question} from './Question';
+import * as FileSaver from "file-saver";
+import {HttpClient, HttpHeaders} from "@angular/common/http";
+import {debounceTime, map, startWith, tap} from "rxjs/operators";
+import {Options} from 'ng5-slider';
+import {db} from "./Database";
+import {topic} from "./Dictionaries";
+import {subtopic} from "./Dictionaries";
+import { PostService } from './services/post.service';
+import { ResponseType } from '@angular/http';
+import {FormControl} from '@angular/forms';
+import {Observable} from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { throwError, concat, of } from 'rxjs';
 
 
-<!-- Logout Modal -->
-<div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="logoutConfirmation"
-     aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="logoutConfirmation">Logout Warnung</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Zurück zur Annotierung</button>
-        <button type="button" class="btn btn-danger" (click)="logout()">Logout</button>
-      </div>
-    </div>
-  </div>
-</div>
+@Component({
+selector: 'app-root',
+templateUrl: './app.component.html',
+styleUrls: ['./app.component.css']
+})
+export class AppComponent implements OnInit {
+  topics:any;
+  myControl = new FormControl('');
+  autoOptions: string[] = [];
+  autoOptionNoResult : boolean = false;
+  filteredAutoOptions: Observable<string[]>; 
+
+constructor(private http: HttpClient,private service:PostService) {
+    this.http = http
+  } 
+
+  updateIfPresent = false;
+  resetDB = true;
+
+  file: any;
+  name: string = "";
+  result: any;
+  loadResult: boolean = false;
+  currIndex: number = 0;
+  currIndexProgress: number = 0;
+  indexAll: Array<number> = [];
+  currentAnnoCounter = 0;
+  startAnnoTime: any;
+  questions: Array<Question> = [];
+  //currentQuestion: Question;
+  //currentQuestion = new Question(-1, '', '', [], '', [], '', [], [], '', '', 0, 5, '', '', '', '', '', '', '', '', 'Selbstfokus', '', '', '', [], []);
+  currentQuestion = new Question(-1, '', '','',[],[],'', [], [], '','');
+  //currentQuestionUnprocessed: boolean = false;
+  //currentTextUnprocessed: boolean = false;
+  q_answers_token_list: Array<Array<string>> = [];
+
+  requestedGoToIndex:number = 0;
+
+  changedHighlighting: boolean = false;
+  clickedSlider = false;
+  additionalTopic: boolean = false;
+
+  topic_copy: Array<string> = [];
+  topic_query: string = "";
+  subtopics: Array<string> = [];
+  highlighting: Array<number> = [];
+
+  wrongPreprocessingOrLanguageList = [];
+
+  pauseTimeBegin: number = 0;
+  pauseTimeTotal: number = 0;
+  paused: boolean = false;
+
+  devMode: boolean = false;
+
+  options: Options = {
+    floor: 0,
+    ceil: 10,
+    step: 1,
+    showTicks: true,
+    showTicksValues: true,
+    ticksArray: [0, 5, 10],
+    getTickColor: (value: number): string => {
+      return 'lightsteelblue';
+    },
+
+    getPointerColor: (value, pointerType): string => {
+      return 'lightsteelblue';
+    }
+  };
 
 
-<!-- Annotation Content -->
-<div class="container" *ngIf="result && name && !paused">
-  <hr/>
+  fileChanged(e) {
+    this.file = e.target.files[0];
+  }
+
+
+  fileSave() {
+    db.questions.toArray().then(res => {
+      let outputStrAr = [];
+      let notInDbQuestions: Array<Question> = this.questions.filter(q => res.filter(q1 => q1.q_uid == q.q_uid).length == 0);
+      let allQs = res.concat(notInDbQuestions).map(qes => Question.stringify(<Question>qes));
+      const blob = new Blob(allQs, {type: "text/plain;charset=utf-8"});
+      FileSaver.saveAs(blob, "annoThemFile_" + this.name.toString() + "_" + new Date().toLocaleString() + ".txt");
+    }, err => {
+      throw err;
+    });
+  }
+
+  addToProblemQList () {
+    console.log('problem with text noted for uid', this.currentQuestion.q_uid);
+    console.log('problems list before adding', this.wrongPreprocessingOrLanguageList);
+    if (!this.wrongPreprocessingOrLanguageList.includes(this.currentQuestion.q_uid)) this.wrongPreprocessingOrLanguageList.push(this.currentQuestion.q_uid);
+    console.log('problems list after adding', this.wrongPreprocessingOrLanguageList);
+  }
+
+  inProblemQList () {
+      if (this.wrongPreprocessingOrLanguageList.includes(this.currentQuestion.q_uid)) return true;
+      return false;
+  }
+
+  clickSlider () {
+    this.clickedSlider = true;
+    console.log("slider clicked", this.clickedSlider);
+  }
+/*
+  setTopic (tt: string) {
+      tt = tt.trim();
+
+      if (this.additionalTopic) {
+        this.currentQuestion.l_topic3 = tt;
+      }else{
+        this.currentQuestion.l_topic1 = tt;
+      }
+
+      console.log ('set new topic:', tt);
+      // set subtopics in subtopic list
+      this.setSubtopicsList (tt);
+  }
+
+  setSubtopicsList (tt: string) {
+      console.log ('find index in topic array, index:', topic.indexOf(tt));
+      if (topic.indexOf(tt)>=0) {this.subtopics = subtopic[topic.indexOf(tt)];}
+      console.log ('subtopics list updated:', this.subtopics);
+
+      // check if current subtopic matches topic, if not delete
+      if (this.additionalTopic) {
+        if (!this.subtopics.includes(this.currentQuestion.l_topic4)) {
+          this.currentQuestion.l_topic4 = '';
+        }
+      }else{
+        if (!this.subtopics.includes(this.currentQuestion.l_topic2)) {
+          this.currentQuestion.l_topic2 = '';
+        }
+      }
+  }
+
+  setSubtopic (st: string) {
+      if (this.additionalTopic) {
+        this.currentQuestion.l_topic4 = st;
+      }else{
+        this.currentQuestion.l_topic2 = st;
+      }
+  }
+*/
+  ngOnInit(): void {
+    this.filteredAutoOptions = this.myControl.valueChanges.pipe(
+      startWith(''),
+      debounceTime(300),
+      map(value => this._filter(value || '')),
+    );
+  }
+
+  addToThemes(theme){
+    this.currentQuestion.themes.push(theme);
+    console.log(this.currentQuestion.themes);
+  }
+
+  removeFromThemes(theme){
+    const index = this.currentQuestion.themes.indexOf(theme);
+    if (index !== -1) {
+      this.currentQuestion.themes.splice(index, 1);
+    };
+  }
+
+  private _filter(value: string): string[] {
+    const filterValue = value.toLowerCase();
+    this.autoOptions = [];
+    this.service.getPosts(filterValue).toPromise().then(response => {
+        this.topics = response["results"]; // here you get the result
+        if (this.topics == null || this.topics.length == 0 ) {
+          if (filterValue!='') this.autoOptionNoResult = true;
+        }
+        else {
+          this.autoOptionNoResult = false;
+          this.topics.forEach((element, index, array) => {
+              if (element["prefLabel"]!='' && !this.autoOptions.includes(element["prefLabel"]))  this.autoOptions.push(element["prefLabel"]);
+          });
+        }
+      });
+    return this.autoOptions = this.autoOptions.filter(option => option.toLowerCase().includes(filterValue)); 
+  }
+
+  loadDocumentFromFile(filename: string) {
+    return this.http.get(filename, {
+      responseType: 'text', headers: new HttpHeaders({
+        'Access-Control-Allow-Origin': '*'
+      })
+    }).pipe(map(data => {
+      return data.split("\n");
+    }));
+  }
+
+  uploadDocument(startAtPrevIndex = false) {
+    this.loadResult = true;
+    if (this.resetDB) db.questions.clear();
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      this.result = fileReader.result;
+      this.processResult(this.result);
+      this.loadResult = false;
+    };
+    fileReader.readAsText(this.file);
+  }
+
+  
+/*
+  toggleAnswerListLength() {
+    if (this.currentQuestion.q_answers_token.length > 5 && this.q_answers_token_list.length <= 5) {
+      this.q_answers_token_list = [];
+      for (let i = 0; i < this.currentQuestion.q_answers_token.length; i += 1) {
+        this.q_answers_token_list.push(this.currentQuestion.q_answers_token[i]);
+      }
+    } else if (this.q_answers_token_list.length > 5) {
+      this.q_answers_token_list = [];
+      for (let i = 0; i < Math.min(5, this.currentQuestion.q_answers_token.length); i += 1) {
+        this.q_answers_token_list.push(this.currentQuestion.q_answers_token[i]);
+      }
+    }
+  }*/
+
+  searchArrayForSubstring(subs: string, arr = []) {
+    let outp = [];
+    arr.forEach(element => {
+      if (element.toLowerCase().search(subs.toLowerCase()) != -1) {
+        outp.push(element);
+      }
+    });
+    return outp;
+  }
+  /*
+  highlightWord(wi, qPart='qText') {
+    if (qPart==='qText') {
+      console.log("request to change word in qText at index: ", wi);
+      this.currentQuestion.q_text_token[wi][1] = Math.abs(this.currentQuestion.q_text_token[wi][1]-1);
+      //console.log("adapted word tuple: ", this.currentQuestion.q_text_token[wi]);
+      //console.log('questions[this.currIndex]:', this.questions[this.currIndex].q_text_token[wi]);
+      this.changedHighlighting = true;
+    } else if (qPart==='qItem') {
+      console.log("request to change word in qItem at index: ", wi);
+      this.currentQuestion.q_items_token[wi][1] = Math.abs(this.currentQuestion.q_items_token[wi][1]-1);
+      //console.log("adapted word tuple: ", this.currentQuestion.q_items_token[wi]);
+      //console.log('questions[this.currIndex]:', this.questions[this.currIndex].q_items_token[wi]);
+      this.changedHighlighting = true;
+    }
+  }*/
+
+  getAllIndices(arr, val) {
+    let indices = [];
+    for(let i = 0; i < arr.length; i++) {
+      if (arr[i][0] === val) indices.push(i);
+    }
+    return indices;
+  }
+
+
+  processResult(result: string, startAtPrevIndex = false) {
+    console.log('start processing file input');
+    const lines = result.split('\n').map(line => {
+      return line.split(';');
+    });
+    const header = lines[0];
+    lines.shift();
+    let q_uid:number;
+    let q_variable_ID:string;
+    let var_label:string;
+    let q_text:string;
+    let q_items: Array<string>;
+    let q_answers: Array<string>;
+    let sub_question: string;
+    let themes: Array<string>;
+    let free_topics : Array<string>;
+    let comment: string;
+    let a_name: string;
+    lines.filter(line => (line.length >= 5 && line.length <= 27) ).forEach(line => {
+      
+      let ind = 0;
+      for (let columnName in header)
+      {
+        if (header[columnName] == 'q_uid')  q_uid = Number(line[ind]);
+        else if (header[columnName] == 'q_variable_ID') q_variable_ID = line[ind];
+        else if (header[columnName] == 'var_label') var_label = line[ind];
+        else if (header[columnName] == 'q_text') q_text = line[ind];
+        else if (header[columnName] == 'q_items') q_items = line[ind].split('&');
+        else if (header[columnName] == 'q_answers') q_answers = line[ind].split('&');
+        else if (header[columnName] == 'sub_question') sub_question = line[ind];
+        else if (header[columnName] == 'themes') themes = line[ind].split('&');
+        else if (header[columnName] == 'free_topics') free_topics = line[ind].split('&');
+        else if (header[columnName] == 'comment')comment = line[ind];
+        else if (header[columnName] == 'a_name')a_name = line[ind];
+        ind = ind +1;
+      }
+      /*
+      const q_uid: number = +line[ind];
+      const q_variable_ID = line[++ind];
+      const var_label = line[++ind];
+      const q_text: string = line[++ind];
+      const q_items = line[++ind].split('&');
+      const q_answers = line[++ind].split('&');
+      const sub_question: string = line[++ind];
+      const themes = line[++ind].split('&');
+      const free_topics = line[++ind].split('&');
+      const comment: string = line[++ind];
+      const a_name: string = line[++ind];*/
+      this.questions.push(new Question(q_uid,q_variable_ID, var_label,q_text, q_items, q_answers,sub_question,	themes,	free_topics,	comment,a_name ));
+      this.indexAll.push(q_uid); 
+
+    });
+
+    this.currIndex = 0;
+    this.loadNewQuestion(this.currIndex, false);
+
+    console.log("done")
+
+  }
+
+  annoDB_AddUpdate(questElem: Question, update = true) {
+
+    let k = db.questions.get(questElem.q_uid).then(res => {
+      if (!res) {
+        db.questions.put(questElem).then(r => {
+          console.log("put element in db ", questElem.q_uid) 
+        });
+      } else {
+        db.questions.update(questElem.q_uid, questElem).then(
+          () => {
+            console.log('updated question', questElem.q_uid);
+          },
+          error => {
+            console.log('error when updating existing question', error);
+          });
+      }
+    });
+
+  }
+
+  goToIndex() {
+    console.log('requested go to index', this.requestedGoToIndex);
+    this.loadNewQuestion(this.requestedGoToIndex - this.currIndex);
+  }
 
 
 
-  <form >
-    <div class="row">
-      <div class="col">
-        <label for="">Question ID</label>
-        <div class="col-lg-12 border border-dark rounded">
-          <span>{{currentQuestion.q_uid}}</span></div>
-      </div>
-      <div class="col">
-        <label for="">Variable ID</label>
-        <div class="col-lg-12 border border-dark rounded">
-          <span>{{currentQuestion.q_variable_ID}}</span></div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col">
-        <label for="" >Fragetext</label>
-        <div class="col-sm-6 border border-dark rounded"  style="padding:0 0 30px 10px ;">
-          <span>{{currentQuestion.q_text}}</span>
+  loadNewQuestion(plusMinusIndex: number, saveCurrent = true): void {
+    // save current question
+    if (saveCurrent) this.saveCurrQuestion();
+    // get index of requested question
+    let targetQuestIndex = this.currIndex + plusMinusIndex;
+    if (targetQuestIndex > this.questions.length - 1) targetQuestIndex = this.questions.length - 1;
+    if (targetQuestIndex < 0) targetQuestIndex = 0;
+    //this.currIndex = targetQuestIndex;
 
-        </div>
-      </div>
+    // load requested question
+    console.log('request new question with index', this.indexAll[targetQuestIndex]);
+    db.questions.get(this.indexAll[targetQuestIndex]).then(res => {
+      if (!res) {
+        let question = this.questions[targetQuestIndex].clone();
+        db.questions.put(question).then(pr => {
+          console.log("saved question to db ", question.q_uid);
+        });
+        this.currentQuestion = question;
+      } else {
+        this.currentQuestion = <Question>res;
+      }
+      this.currIndex = targetQuestIndex;
+      this.currIndexProgress = Math.round(this.currIndex*100/this.questions.length);
+      console.log ('this.currIndexProgress:', this.currIndexProgress);
+      /*this.q_answers_token_list = [];
+      for (let i = 0; i < Math.min(5, this.currentQuestion.q_answers_token.length); i += 1) {
+        this.q_answers_token_list.push(this.currentQuestion.q_answers_token[i]);
+      }*/
+      // reset a few variables
+      /*this.additionalTopic = false;
+      this.subtopics = [];
+      if (!this.additionalTopic && this.currentQuestion.l_topic1.length>1) this.setSubtopicsList (this.currentQuestion.l_topic1);
+      if (this.additionalTopic && this.currentQuestion.l_topic3.length>1) this.setSubtopicsList (this.currentQuestion.l_topic3);
+      if (this.currentQuestion.l_topic1.length>1 && this.currentQuestion.l_topic2.length>1 && this.currentQuestion.l_topic3.length>1 && this.currentQuestion.l_topic4.length<=1) {
+        this.additionalTopic = true;
+        this.setSubtopicsList (this.currentQuestion.l_topic3);
+      }
+      this.changedHighlighting = false;
+      this.highlighting = this.getQuestionTextHighlight (this.currentQuestion);*/
+      this.clickedSlider = false;
+      this.startAnnoTime = Date.now()/1000;
+      console.log('new Question loaded from db:', this.currentQuestion);
 
-    </div>
+    });
 
-    <div class="row">
-      <div class="col">
-        <label for="">Frageitem</label>
-        <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
-          <span>{{currentQuestion.q_items}}</span></div>
-      </div>
-      <div class="col">
-        <label for="">Variable label</label>
-        <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
-          <span>{{currentQuestion.var_label}}</span></div>
-      </div>
-    </div>
+  }
 
-    <div class="row">
-      <div class="col">
-        <label for="">Antwortkategorien</label>
-        <div  class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
-          <span>{{currentQuestion.q_answers}}</span>
-        </div>
-      </div>
-      <div class="col">
-        <label for="">Wertelabel</label>
-        <div class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
-          <span>{{currentQuestion.q_answers}}</span></div>
-      </div>
-    </div>
-<br>
+  /*
+  getQuestionTextHighlight (q) {
+    let h: Array<number> = [];
+    for (let i = 0; i < q.q_text_token.length; i++) {
+      h.push(q.q_text_token[i][1]);
+    }
+    for (let i = 0; i < q.q_items_token.length; i++) {
+      h.push(q.q_items_token[i][1]);
+    }
+    return h;
+  }
 
-    <div class="col-lg-12 border border-dark rounded" style="padding:0 0 30px 10px ;">
+  changedCurrQuestionTextHighlight () {
+    let changed = false;
+    const h_new = this.getQuestionTextHighlight (this.currentQuestion);
+    for (let i = 0; i < h_new.length; i++) {
+      if (h_new[i] != this.highlighting[i]) {
+        changed = true;
+        break;
+      }
+    }
+    //console.log('changed text highlighting: ', changed);
+    return changed;
+  }*/
 
-      <div class="form-group row" style="display:flex; justify-content:flex-start;">
-        <label class="col-sm-2 col-form-label" style="max-width: 7%;">Thema:</label>
-        <div class="col-md-8" style="max-width: 50%;">
-          <!--<input type="checkbox" class="custom-control-input" [(ngModel)]="additionalTopic" id="toggleAdditionalTopic" name="toggleAdditionalTopic">
-          <label class="custom-control-label" for="toggleAdditionalTopic" >Zusätzliches Thema</label>-->
-          <form class="auto-form">
-            <mat-form-field class="auto-full-width" appearance="fill">
-              <input type="text" [(ngModel)]="topic_query" style="display: flex; align-items:center"
-                     placeholder="search for a theme"
-                     aria-label="From Thesoz"
-                     matInput
-                     [formControl]="myControl"
-                     [matAutocomplete]="auto" >
-              <mat-autocomplete #auto="matAutocomplete">
-                <mat-option *ngFor="let option of (filteredAutoOptions | async)" (onSelectionChange)="addToThemes(option)" [value]="option">
-                  {{option}}
-                </mat-option>
-              </mat-autocomplete>
-            </mat-form-field>
-            <span *ngIf="autoOptionNoResult" class="auto-no-result"> no result</span>
-          </form>
-      </div><i class="fa fa-search"  style="line-height: 2; margin-left:5px; margin-right: 60px; font-size: x-large; float: right;" ></i>
-      </div><br><br>
+  saveCurrQuestion(): void {
+    if (/*this.currentQuestion.l_topic1 != this.questions[this.currIndex].l_topic1 ||
+      this.currentQuestion.l_topic2 != this.questions[this.currIndex].l_topic2 ||
+      this.currentQuestion.l_topic3 != this.questions[this.currIndex].l_topic3 ||
+      this.currentQuestion.l_concept != this.questions[this.currIndex].l_concept ||
+      this.changedCurrQuestionTextHighlight() === true ||
+      this.changedHighlighting === true*/true == true) {
+      this.currentAnnoCounter += 1;
+      this.currentQuestion.a_name = this.name;
+      this.currentQuestion.a_name = this.name;
+      /*this.currentQuestion.a_timestamp = new Date().toLocaleString();
+      this.currentQuestion.a_annotime = Date.now()/1000 - this.startAnnoTime - this.pauseTimeTotal;*/
+      this.questions[this.currIndex] = this.currentQuestion; // insert to Array
+      this.annoDB_AddUpdate(this.currentQuestion, true); // insert to annoDB
+      console.log('Question saved to array:', this.questions[this.currIndex]);
+    } else {
+      console.log('no changes, object not overwritten');
+    }
+  }
 
+  pause(): void {
+    if (this.paused) {
+      this.paused = false;
+      this.pauseTimeTotal = this.pauseTimeTotal + Date.now()/1000 - this.pauseTimeBegin;
+      this.pauseTimeBegin = 0;
+    } else {
+      this.paused = true;
+      this.pauseTimeBegin = Date.now()/1000;
+    }
+  }
 
-        <div style="margin: 20px 0 40px 0;">Ausgewälte Themen:</div>
-        <div  class="col-lg-12 border rounded" style="padding:10px;background-color: #f5f5f5;" id="questionAnswers">
-          <div *ngFor="let theme of currentQuestion.themes" #item>
-            
-            <span style="padding-bottom:10px;margin-bottom: 10px;">
-              
-    
-              <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:right;line-height: 2;font-size: 30px;">delete</i>
-              
-              <hr  style="width:100%;height:1px;border-width:0;color:gray;margin:10px auto;background-color:rgb(203, 201, 201)">
-              
-    
+  logout(): void {
+    // resume if paused (to get annotime correct)
+    if (this.paused) this.pause();
+    // save current question
+    this.saveCurrQuestion();
+    // save all to file
+    this.exportData();
+    // reset variables
+    this.currentAnnoCounter = 0;
+    // reset all
+    window.location.reload();
+  }
 
-              {{theme }}
-              
-              
-            </span>
-            <br>
-            <p style="margin-top: 10px;">Freie Schlagworte dazu (optional)</p>
-            <select class="col-sm-6" style="  float: left;background-color: #fff;"></select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
-      <button style="float: right; background-color: #fff; border-radius: 5px;" >Neues freies Schlagwort zu Church hinzufügen</button>
-          </div>
+  logCurrentQuestion() {
+    console.log('currentQuestion:', this.currentQuestion);
+    console.log('questions[this.currIndex]:', this.questions[this.currIndex]);
+  }
 
-        </div>
-    </div>
-    <br>
-    <div class="col-lg-12 border border-dark rounded" style="padding-bottom: 30px;">
-      <p style="margin-top: 10px;">Freie Schlagworte,die nicht einem TheSoz Thema zugeordent sind (optional)</p>
-      <select class="col-sm-6" style="  float: left;background-color: #fff;"></select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
-      <button style="float: right; background-color: #fff; border-radius: 5px;">Freies Schlagwort hinzufugen</button>
+  logCurrentQuestionText() {
+    console.log('currentQuestion:', this.currentQuestion.q_text);
+    console.log('questions[this.currIndex]:', this.questions[this.currIndex].q_text);
+      /*console.log('currentQuestion:', this.currentQuestion.q_text_token);
+      console.log('questions[this.currIndex]:', this.questions[this.currIndex].q_text_token);*/
+    }
 
-    </div>
+  outputProblemQList () {
+    let s = [];
+    for (let i = 0; i < this.wrongPreprocessingOrLanguageList.length; i += 1) {
+      s.push( this.wrongPreprocessingOrLanguageList[i].toString() + '\r\n' );
+    }
+    const blob = new Blob(s, {type: "text/plain;charset=utf-8"});
+    FileSaver.saveAs(blob, "annoFile_PROBLEMIDS_" + this.name.toString() + "_" + new Date().toLocaleString() + ".txt");
+  }
 
+  exportData () {
+    // save current question
+    this.saveCurrQuestion();
+    // save all to file
+    this.fileSave ();
+    // export problem ID list
+    this.outputProblemQList();
+  }
 
-      <br>
-    <div class="row">
-      <div class="col">
-          <label for="">Kommentar</label>
-          <div class="col-lg-12 border border-dark rounded" style="padding:0 0 60px 10px ;">
-            <span>xxxx</span></div>
-      </div>
-
-    </div>
-
-    <div class="form-group">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required>
-        <label class="form-check-label" for="invalidCheck">
-          Variable zur Wiedervorlage kennzeichnen
-        </label>
-
-      </div>
-    </div>
-
-
-  </form>
-
-
-
-
-  <form>
-    <!-- TEXT -->
-    <div class="form-row" (mouseover)="hover=true" (mouseleave)="hover=false">
-      <label for="questionText">Frage #{{currentQuestion.q_uid}}</label>
-      <div class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionText">
-        <span>{{currentQuestion.q_text}}</span>
-      </div>
-    </div>
-
-    <!-- ITEMS -->
-    <div class="form-row" *ngIf="currentQuestion?.q_items.length>0">
-      <label for="questionAnswers">Fragenitem</label>
-      <div class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionItem">
-        <div *ngFor="let item of currentQuestion.q_items">
-          <span>
-            {{item}}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ANSWER OPTIONS -->
-    <div class="form-row">
-      <label for="questionAnswers">Antwortoptionen</label>
-      <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
-        <div *ngFor="let a of currentQuestion.q_answers">
-          <span>
-            {{a}}
-          </span>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Button Bar -->
-    <hr/>
-    <div class="form-row">
-      <!-- Collapse Variablen ID
-      <div class="mx-2 custom-control custom-switch">
-        <input type="checkbox" class="custom-control-input" data-toggle="collapse" href="#collapseVarIDs"
-               id="toggleVarIDs">
-        <label class="custom-control-label" for="toggleVarIDs">Variablen IDs</label>
-      </div> -->
-      <!-- Mark problem with question
-      <div class="mx-2"
-           *ngIf="!inProblemQList()">
-        <button type="button" class="btn btn-outline-info btn-sm" (click)="addToProblemQList()">Problem mit Text anmerken</button>
-      </div>
-      <div class="mx-2"
-           *ngIf="inProblemQList()">
-        <button type="button" class="btn btn-outline-info btn-sm" disabled>Problem mit Text angemerkt</button>
-      </div>-->
-    </div>
-    <!--
-    <div class="form-row">
-      <div class="collapse" id="collapseVarIDs">
-        <span *ngFor="let ID of currentQuestion?.q_variable_IDs" name="text_variableIDs"
-              class="badge badge-secondary">{{ID}}</span>
-      </div>
-    </div>-->
-    <div class="form-row" >
-      <div style="width:100%;" id="varID">
-        <label for="varID">VariabelID &nbsp;</label>
-        <span class="badge badge-secondary">{{currentQuestion.q_variable_ID}}<br></span>
-      </div>
-      <label for="varLabel">Variabellabel &nbsp;</label>
-      <div class="col-lg-12 border border-dark rounded" style="width:100%;" id="varLabel">
-
-        <span>{{currentQuestion.var_label}}</span>
-      </div>
-    </div>
-
-    <hr/>
-    <hr/>
-
-
-    <div class="row">
-        <!-- HEADER -->
-          <legend class="col-form-label col-md-2 pt-0">Thema</legend>
-
-        <!-- CURRENT VALUES
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-secondary" id="SuperAttributeCurrent">{{currentQuestion?.l_topic1}}</span></h4>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-info" id="SuperAttributeCurrentSecond">{{currentQuestion?.l_topic3}}</span></h4>
-          </div>
-      </div>-->
-
-      <!-- SUBTOPIC
-      <div class="col-md-6 border rounded">
-        <!-- HEADER
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <h3>Unterthema</h3>
-          </div>
-        </div>
-        <!-- CURRENT VALUE
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-secondary" id="SubAttributeCurrent">{{currentQuestion?.l_topic2}}</span></h4>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="d-flex align-items-center justify-content-center col-md-12">
-            <h4><span class="badge badge-info" id="SubAttributeCurrentSecond">{{currentQuestion?.l_topic4}}</span></h4>
-          </div>
-        </div>
-        <!-- OPTIONS
-        <div class="form-row">
-          <div class="form-group col-md-12">
-            <div *ngFor="let topic of subtopics" class="input-group" id="Subtopic">
-              <button name="btn_period" class="btn btn-outline-secondary btn-block"
-                      type="button"
-                      id="btn_period"
-                      (click)="setSubtopic(topic)">{{topic}}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>-->
-    </div>
-
-    <div  class="col-lg-12 border border-dark rounded" style="padding:10px" id="questionAnswers">
-      <div *ngFor="let theme of currentQuestion.themes" #item>
-        <span style="padding-bottom:10px;margin-bottom: 10px;">
-<<<<<<< Updated upstream
-          <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:left">delete</i>
-=======
-          <i class="material-icons md-18" (click)="removeFromThemes(theme)" (click)="item.remove() " style="float: left;">delete</i>
->>>>>>> Stashed changes
-
-          {{theme}}
-        </span>
-      </div>
-
-    </div>
-
-<!--
-    <div class="row">
-
-      <!-- CERTAINTY SLIDER
-      <div class="col-md-12 border rounded">
-        <div class="form-row">
-          <h3>Antwortsicherheit</h3>
-        </div>
-        <div class="form-row">
-          <span *ngIf="changedCurrQuestionTextHighlight() && !clickedSlider" class="badge badge-danger">Antwortsicherheit fehlt</span>
-        </div>
-        <div class="form-row">
-          <ng5-slider [(value)]="currentQuestion.a_certainty" [options]="options" (click)="clickSlider()" id="CertSlider"></ng5-slider>
-        </div>
-        <hr/> <!-- Compensate for slider labels
-      </div>
-
-    </div> -->
-
-  </form>
-
-  <!-- Make room for buttom navigation bar -->
-  <hr/>
-  <hr/>
-  <hr/>
-  <hr/>
-  <hr/>
-  <hr/>
-  <hr/>
-  <hr/>
-
-
-</div>
-
-<!-- Pause-Resume Text -->
-<div class="container" *ngIf="result && name && paused">
-  <hr/>
-  <hr/>
-  <div class="row justify-content-md-center">
-    <div class="col-md-auto">
-      <button type="button" class="btn btn-danger" (click)="pause()">Resume</button>
-    </div>
-  </div>
-</div>
-
-
-<nav class="navbar fixed-bottom navbar-dark bg-dark" *ngIf="result && name">
-  <!-- Left -->
-
-  <span class="navbar-text">
-   <!-- <a *ngIf="!paused"
-       [class.disabled]="(changedCurrQuestionTextHighlight() && !clickedSlider) ? true: null"
-       class="btn btn-secondary float-left" href="index.html#top-section" (click)="loadNewQuestion(-1)" id="prev_question_button">Vorherige</a>-->
-       <a class="btn btn-secondary float-left" href="index.html#top-section" (click)="loadNewQuestion(-1)" id="prev_question_button">Vorherige</a>
-  </span>
-  <!-- Center left -->
-  <span class="navbar-text">
-    <h4>Aktueller Index: {{currIndex}}</h4>
-    <div class="progress">
-      <div class="progress-bar bg-info" role="progressbar" [style.width]="currIndexProgress + '%'" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
-    </div>
-  </span>
-  <!-- Center right -->
-  <span class="navbar-text">
-    <div class="col-7">
-      <div class="input-group">
-        <input type="text" class="form-control" id="inputGoToIndex" placeholder="ID" [(ngModel)]="requestedGoToIndex">
-        <div class="input-group-append">
-          <button type="submit" class="mx-2 btn btn-secondary" (click)="goToIndex()">Öffne Index</button>
-        </div>
-      </div>
-    </div>
-  </span>
-  <!-- Center right -->
-  <span class="navbar-text">
-    <button *ngIf="!paused" type="button" class="mx-2 btn btn-danger" (click)="pause()">Pause</button>
-    <button type="button" class="mx-2 btn btn-secondary" (click)="exportData()">Daten exportieren</button>
-  </span>
-  <!-- Right -->
-  <span class="navbar-text">
-    <!--<a *ngIf="!paused && currIndex<indexAll.length-1"
-       [class.disabled]="(changedCurrQuestionTextHighlight() && !clickedSlider) ? true: null"
-       class="btn btn-secondary float-right" href="index.html#top-section" (click)="loadNewQuestion(1)" id="next_question_button">Nächste</a>-->
-    <a class="btn btn-secondary float-right" href="index.html#top-section" (click)="loadNewQuestion(1)" id="next_question_button">Nächste</a>
-  </span>
-  <span class="navbar-text">
-  <a *ngIf="!paused && currIndex>=indexAll.length-1" class="btn btn-secondary float-right" href="index.html#top-section" (click)="loadNewQuestion(1)" id="next_question_button"
-     data-toggle="modal" data-target="#lastQModal">Eintragen</a>
-  </span>
-</nav>
-
-
-<!-- Last Q Modal -->
-<div class="modal fade" id="lastQModal" tabindex="-1" role="dialog" aria-labelledby="finalQuestionConfirmation"
-     aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="finalQuestionConfirmation">Last Question</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Ok</button>
-      </div>
-    </div>
-  </div>
-</div>
-
+}
