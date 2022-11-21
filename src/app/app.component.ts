@@ -10,7 +10,7 @@ import {subtopic} from "./Dictionaries";
 import { PostService } from './services/post.service';
 import { ResponseType } from '@angular/http';
 import {FormControl} from '@angular/forms';
-import {Observable} from 'rxjs';
+import {from, Observable} from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { throwError, concat, of } from 'rxjs';
 
@@ -172,13 +172,65 @@ constructor(private http: HttpClient,private service:PostService) {
     this.currentQuestion.themes.push(theme);
     console.log(this.currentQuestion.themes);
   }
+ 
 
+
+  addToTopic(event: any,theme){
+    // alert(event.target.value);
+    if (theme) {this.currentQuestion.free_topics.push(theme+'_'+event.target.value)}
+    else {
+      this.currentQuestion.free_topics.push(event.target.value)
+    }
+    
+
+      console.log(this.currentQuestion.free_topics);
+      
+  }
+ 
+  
+
+
+  // removeFromTopics(free_topic){
+
+  //   //   const index = this.currentQuestion.themes.indexOf(free_topic);
+  //   //   if (index !== -1) {
+  //   //     this.currentQuestion.themes.splice(index, 1);
+  //   //     console.log(free_topic);
+        
+  //   //   };
+     
+      
+  //   // }
+
+
+
+  
+  
   removeFromThemes(theme){
+
     const index = this.currentQuestion.themes.indexOf(theme);
     if (index !== -1) {
       this.currentQuestion.themes.splice(index, 1);
     };
   }
+
+  
+
+
+  removeFromTopics(free_topic){
+    // alert('halll');
+    console.log(this.currentQuestion.free_topics);
+    
+    const index = this.currentQuestion.free_topics.indexOf(free_topic);
+    if (index !== -1) {
+      this.currentQuestion.free_topics.splice(index, 1);
+      console.log("azade");
+      
+    };
+    console.log(this.currentQuestion.free_topics);
+
+  }
+  
 
   private _filter(value: string): string[] {
     const filterValue = value.toLowerCase();

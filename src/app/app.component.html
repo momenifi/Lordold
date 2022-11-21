@@ -166,40 +166,56 @@
             <span *ngIf="autoOptionNoResult" class="auto-no-result"> no result</span>
           </form>
       </div><i class="fa fa-search"  style="line-height: 2; margin-left:5px; margin-right: 60px; font-size: x-large; float: right;" ></i>
-      </div><br><br>
+      </div>
 
 
-        <div style="margin: 20px 0 40px 0;">Ausgewälte Themen:</div>
+        <div style="margin: 30px 0 15px 0;">Ausgewälte Themen:</div>
+        
         <div  class="col-lg-12 border rounded" style="padding:10px;background-color: #f5f5f5;" id="questionAnswers">
           <div *ngFor="let theme of currentQuestion.themes" #item>
             
+            
             <span style="padding-bottom:10px;margin-bottom: 10px;">
               
-    
-              <i class="material-icons md-18"  (click)="removeFromThemes(theme)" style="float:right;line-height: 2;font-size: 30px;">delete</i>
+              
+              <i class="fa fa-trash md-18"  (click)="removeFromThemes(theme)" style="float:left;line-height: 2;font-size: 22px;margin-right: 10px;cursor: pointer;"></i>
               
               <hr  style="width:100%;height:1px;border-width:0;color:gray;margin:10px auto;background-color:rgb(203, 201, 201)">
               
-    
-
               {{theme }}
-              
-              
+            <p style="margin-top: 10px;font-size: 20px;font-weight: 60px;margin-bottom: -5px;">Freie Schlagworte dazu (optional)</p>
+            <div  *ngFor="let free_topic of currentQuestion.free_topics"   #item  style="margin-left: 20px;line-height: 1;margin-bottom: 10px;"><div *ngIf="free_topic.includes(theme)"><br>
+                <span >{{free_topic.substr(theme.length+1)}}<i class="fa fa-trash"  (click)="removeFromTopics(free_topic)" style="float:left;font-size: 22px;margin-right: 10px;cursor: pointer;"></i></span></div></div>
             </span>
-            <br>
-            <p style="margin-top: 10px;">Freie Schlagworte dazu (optional)</p>
-            <select class="col-sm-6" style="  float: left;background-color: #fff;"></select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
+            
+          
+            <select class="col-sm-6 " id="mySelect"  style="  float: left;background-color: #fff;"  (change)="addToTopic($event,theme)">
+              <option value="key1">key01</option>
+              <option value="key2">key02</option>
+              <option value="key3">key03</option>
+              <option value="key4">key04</option>
+            </select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
       <button style="float: right; background-color: #fff; border-radius: 5px;" >Neues freies Schlagwort zu Church hinzufügen</button>
           </div>
 
         </div>
     </div>
-	
-	
+<!-- --------------------------------------------------------------------------- -->
+    
     <br>
-    <div class="col-lg-12 border border-dark rounded" style="padding-bottom: 29px;">
-      <p style="margin-top: 10px;">Freie Schlagworte,die nicht einem TheSoz Thema zugeordent sind (optional)</p>
-      <select class="col-sm-6" style="  float: left;background-color: #fff;"></select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
+    <div class="col-lg-12 border border-dark rounded" style="padding-bottom: 30px;">
+      <p style="margin-top: 10px;font-size: 20px;font-weight: 60px;margin-bottom: 20pxpx;">Freie Schlagworte,die nicht einem TheSoz Thema zugeordent sind (optional)</p>
+      <div  *ngFor="let free_topic of currentQuestion.free_topics" #item><div *ngIf="!free_topic.includes('_')"><br>
+        <span id="span5">{{free_topic}}<i class="fa fa-trash"  (click)="removeFromTopics(free_topic)" style="float:left;font-size: 22px;margin-right: 10px;cursor: pointer;"></i></span></div>
+        
+      </div>
+      
+      <select class="col-sm-6" style="  float: left;background-color: #fff;"  (change)="addToTopic($event)">
+        <option value="v1">value1</option>
+        <option value="v2">value2</option>
+        <option value="v3">value3</option>
+        <option value="v4">value4</option>
+      </select><i class="fa fa-plus-square"  style="margin-left: 5px; font-size: x-large;"></i>
       <button style="float: right; background-color: #fff;">Freies Schlagwort hinzufugen</button>
 
     </div>
