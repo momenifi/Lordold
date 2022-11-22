@@ -13,7 +13,10 @@ export class PostService {
    
   constructor(private httpClient: HttpClient) { }
     getPosts(query: string){
-      return this.httpClient.get(this.url+query+'*&lang=de');
-  }
+      return this.httpClient.get(this.url+query+'&lang=de');
+    }
+    getUri(query: string){
+      return this.httpClient.get(this.url+query);
+    }
   
 } 

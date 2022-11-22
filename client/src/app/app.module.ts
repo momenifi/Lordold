@@ -10,6 +10,7 @@ import { Ng5SliderModule } from 'ng5-slider';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule, MatFormFieldModule, MatInputModule } from '@angular/material';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { AppRoutingModule } from './app-routing.module';
 
 
 @NgModule({
@@ -27,7 +28,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     MatFormFieldModule,  
     MatAutocompleteModule,
     ReactiveFormsModule,
-    MatInputModule 
+    MatInputModule,
+    AppRoutingModule
   ],
   exports: [
     MatFormFieldModule

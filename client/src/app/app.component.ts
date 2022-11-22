@@ -10,9 +10,11 @@ import {subtopic} from "./Dictionaries";
 import { PostService } from './services/post.service';
 import { ResponseType } from '@angular/http';
 import {FormControl} from '@angular/forms';
-import {from, Observable} from 'rxjs';
+import {Observable} from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { throwError, concat, of } from 'rxjs';
+import { KeywordService } from 'src/app/services/keyword.service';
+
 
 
 @Component({
@@ -26,8 +28,14 @@ export class AppComponent implements OnInit {
   autoOptions: string[] = [];
   autoOptionNoResult : boolean = false;
   filteredAutoOptions: Observable<string[]>; 
+  keyword = {
+    keywordText: '',
+    theme: '',
+    theme_uri: ''
+  };
+  keyword_submitted;
 
-constructor(private http: HttpClient,private service:PostService) {
+constructor(private http: HttpClient,private service:PostService, private keywordService: KeywordService) {
     this.http = http
   } 
 
@@ -86,11 +94,9 @@ constructor(private http: HttpClient,private service:PostService) {
     }
   };
 
-
   fileChanged(e) {
     this.file = e.target.files[0];
   }
-
 
   fileSave() {
     db.questions.toArray().then(res => {
@@ -555,5 +561,47 @@ constructor(private http: HttpClient,private service:PostService) {
     // export problem ID list
     this.outputProblemQList();
   }
+
+  addKeywordToDatabase(theme: string) {
+    this.keyword.theme = theme.trim();
+    this.keywordService.findByKeywordTheme(this.keyword.keywordText,this.keyword.theme).subscribe(
+      response => {
+        if (Object.keys(response).length)
+          console.log('A keyword for this theme exists in the database');
+        else {
+          this.service.getUri(theme).toPromise().then(response => {
+            const res = response["results"]; // here you get the result
+            if (res == null || res.length == 0 ) {
+              if (theme!='') console.log('no theme from Thesoz');
+            }
+            else {
+              for (let i=0; i <res.length; i++){
+                if (res[i]["prefLabel"]!='' && res[i]["prefLabel"]==theme){
+                  this.keyword.theme_uri=res[i]["uri"];
+                    break;
+                }
+              }  
+            };
+          
+            const data = {
+              keywordText: this.keyword.keywordText,
+              theme: this.keyword.theme,
+              theme_uri: this.keyword.theme_uri
+            };
+            
+            this.keywordService.create(data)
+              .subscribe(
+                response => {
+                  console.log('Keyword has been added to database');
+                  this.keyword_submitted = true;
+               },
+              error => {
+                console.log('Keyword could not be added to the database'+error);
+              });
+          });
+        }
+      });
+  }
+
 
 }
